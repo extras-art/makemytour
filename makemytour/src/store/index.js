@@ -8,6 +8,7 @@ const saveusertolocalstorage = (user) => {
 };
 const initialState = {
   user: null,
+  isAuthLoaded: false,
 };
 
 const userSlice = createSlice({
@@ -16,18 +17,23 @@ const userSlice = createSlice({
   reducers: {
     setUser: (state, action) => {
       state.user = action.payload;
+      state.isAuthLoaded = true;
       saveusertolocalstorage(action.payload);
     },
     clearUser: (state) => {
       state.user = null;
+      state.isAuthLoaded = true;
       if (typeof window !== "undefined" && localStorage) {
         localStorage.removeItem("user");
       }
     },
+    setAuthLoaded: (state) => {
+      state.isAuthLoaded = true;
+    },
   },
 });
 
-export const { setUser, clearUser } = userSlice.actions;
+export const { setUser, clearUser, setAuthLoaded } = userSlice.actions;
 
 const store = configureStore({
   reducer: {

@@ -1,82 +1,76 @@
 package com.makemytrip.makemytrip.models;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "flight")
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "flights")
 public class Flight {
+
     @Id
-    private String _id;
-    private String flightName;
-    private String from;
-    private String to;
-    private String departureTime;
-    private String arrivalTime;
-    private double price;
-    private int availableSeats;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // Getters and Setters
+    @Column(nullable = false)
+    private String airline;
 
-    public String getId() {
-        return _id;
+    @Column(nullable = false)
+    private String source;
+
+    @Column(nullable = false)
+    private String destination;
+
+    private LocalDateTime departureTime;
+    private LocalDateTime arrivalTime;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal price;
+
+    private Integer availableSeats;
+
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    public Flight() {}
+
+    @PrePersist
+    public void prePersist() {
+        if (active == null) {
+            active = true;
+        }
     }
 
-    public void setId(String id) {
-        this._id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public String getFlightName() {
-        return flightName;
-    }
+    public String getAirline() { return airline; }
+    public void setAirline(String airline) { this.airline = airline; }
 
-    public void setFlightName(String flightName) {
-        this.flightName = flightName;
-    }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 
-    public String getFrom() {
-        return from;
-    }
+    public String getDestination() { return destination; }
+    public void setDestination(String destination) { this.destination = destination; }
 
-    public void setFrom(String from) {
-        this.from = from;
-    }
-
-    public String getTo() {
-        return to;
-    }
-
-    public void setTo(String to) {
-        this.to = to;
-    }
-
-    public String getDepartureTime() {
-        return departureTime;
-    }
-
-    public void setDepartureTime(String departureTime) {
+    public LocalDateTime getDepartureTime() { return departureTime; }
+    public void setDepartureTime(LocalDateTime departureTime) {
         this.departureTime = departureTime;
     }
 
-    public String getArrivalTime() {
-        return arrivalTime;
-    }
-
-    public void setArrivalTime(String arrivalTime) {
+    public LocalDateTime getArrivalTime() { return arrivalTime; }
+    public void setArrivalTime(LocalDateTime arrivalTime) {
         this.arrivalTime = arrivalTime;
     }
 
-    public double getPrice() {
-        return price;
-    }
+    public BigDecimal getPrice() { return price; }
+    public void setPrice(BigDecimal price) { this.price = price; }
 
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
-    public int getAvailableSeats() {
-        return availableSeats;
-    }
-
-    public void setAvailableSeats(int availableSeats) {
+    public Integer getAvailableSeats() { return availableSeats; }
+    public void setAvailableSeats(Integer availableSeats) {
         this.availableSeats = availableSeats;
     }
+
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 }

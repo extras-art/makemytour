@@ -1,22 +1,57 @@
 package com.makemytrip.makemytrip.controllers;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import com.makemytrip.makemytrip.models.Users;
+
+import com.makemytrip.makemytrip.dto.CreateBookingRequestDto;
+import com.makemytrip.makemytrip.models.Booking;
 import com.makemytrip.makemytrip.services.BookingService;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/booking")
+@RequestMapping("/api/bookings")
 public class BookingController {
-    @Autowired
-    private BookingService bookingService;
 
-    @PostMapping("/flight")
-    public Users.Booking bookFlight(@RequestParam String userId,@RequestParam String flightId,@RequestParam int seats,@RequestParam double price){
-        return bookingService.bookFlight(userId,flightId,seats,price);
+    private final BookingService bookingService;
+
+    public BookingController(BookingService bookingService) {
+        this.bookingService = bookingService;
     }
-    @PostMapping("/hotel")
-    public Users.Booking bookhotel (@RequestParam String userId,@RequestParam String hotelId,@RequestParam int rooms,@RequestParam double price){
-        return bookingService.bookhotel(userId,hotelId,rooms,price);
+
+    @PostMapping
+    public ResponseEntity<Booking> createBooking(
+        @Valid @RequestBody CreateBookingRequestDto request,
+        Authentication authentication
+    ) {
+        String authEmail = authentication != null ? authentication.getName() : null;
+        Booking booking = bookingService.createBooking(request, authEmail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Booking>> getBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Booking>> getUserBookings(
+        @PathVariable Long userId,
+        Authentication authentication
+    ) {
+        String authEmail = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(bookingService.getBookingsForUser(userId, authEmail));
+    }
+
+    @PatchMapping("/{bookingId}/cancel")
+    public ResponseEntity<Void> cancelBooking(
+        @PathVariable Long bookingId,
+        Authentication authentication
+    ) {
+        String authEmail = authentication != null ? authentication.getName() : null;
+        bookingService.cancelBooking(bookingId, authEmail);
+        return ResponseEntity.noContent().build();
     }
 }

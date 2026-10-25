@@ -1,7 +1,10 @@
 package com.makemytrip.makemytrip.repositories;
-import com.makemytrip.makemytrip.models.Users;
-import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface UserRepository extends MongoRepository<Users,String>{
-    Users findByEmail(String email);
+import com.makemytrip.makemytrip.models.Users;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
+
+public interface UserRepository extends JpaRepository<Users, Long> {
+    Optional<Users> findByEmailIgnoreCase(String email);
+    boolean existsByEmailIgnoreCase(String email);
 }

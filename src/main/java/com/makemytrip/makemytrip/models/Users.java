@@ -1,96 +1,66 @@
 package com.makemytrip.makemytrip.models;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-import java.util.ArrayList;
-@Document(collection = "users")
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "app_users")
 public class Users {
+
     @Id
-    private String _id;
-    private String firstName;
-    private String lastName;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(nullable = false)
+    private String name;
+
+    // Store a securely hashed password, never plaintext.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    @Column(nullable = false)
     private String password;
-    private String role;
-    private String phoneNumber;
-    private List<Booking> bookings = new ArrayList<>();;
 
+    private String phone;
 
-    public String getFirstName() {return firstName;}
-    public String getId() {
-        return _id;
-    }
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-    public String getLastName() {
-        return lastName;
-    }
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-    public String getPassword() {return password;}
-    public String getEmail() {return email;}
-    public String getRole() {return role;}
-    public void setPassword(String password) {this.password = password;}
-    public void setRole(String role) {this.role = role;}
-    public List<Booking> getBookings(){return bookings;}
-    public void setBookings(List<Booking> bookings){this.bookings=bookings;}
+    @Column(nullable = false, length = 50)
+    private String role = "ROLE_USER";
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    public static class Booking{
-        private String type;
-        private String bookingId;
-        private String date;
-        private int quantity;
-        private double totalPrice;
+    public Users() {}
 
-        // Getters and Setters
-        public String getType() {
-            return type;
+    @PrePersist
+    public void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
         }
-
-        public void setType(String type) {
-            this.type = type;
-        }
-
-        public String getBookingId() {
-            return bookingId;
-        }
-
-        public void setBookingId(String bookingId) {
-            this.bookingId = bookingId;
-        }
-
-        public String getDate() {
-            return date;
-        }
-
-        public void setDate(String date) {
-            this.date = date;
-        }
-
-        public int getQuantity() {
-            return quantity;
-        }
-
-        public void setQuantity(int quantity) {
-            this.quantity = quantity;
-        }
-
-        public double getTotalPrice() {
-            return totalPrice;
-        }
-
-        public void setTotalPrice(double totalPrice) {
-            this.totalPrice = totalPrice;
+        if (role == null || role.isBlank()) {
+            role = "ROLE_USER";
         }
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

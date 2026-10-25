@@ -1,3 +1,4 @@
+import Head from "next/head";
 import { useRouter } from "next/router";
 
 import {
@@ -17,6 +18,7 @@ import {
 import { useEffect, useState } from "react";
 import { getflight, handleflightbooking } from "@/api";
 import { useDispatch, useSelector } from "react-redux";
+import { calculateDuration, formatDateTime } from "@/lib/utils";
 interface Flight {
   id: string; // Unique identifier for the flight
   flightName: string; // Name of the flight
@@ -48,23 +50,35 @@ const BookFlightPage = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [open, setopem] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const user = useSelector((state: any) => state.user.user);
   const dispatch = useDispatch();
   useEffect(() => {
+    if (!router.isReady || !id) return;
+
     const fetchFlights = async () => {
       try {
+        setLoading(true);
+
         const data = await getflight();
-        const filteredData = data.filter((flight: any) => flight.id === id);
-        setFlights(filteredData);
-        console.log(filteredData);
+        const flightId = Array.isArray(id) ? id[0] : id;
+
+        const selectedFlight = data.find(
+          (flight: any) => String(flight.id) === String(flightId)
+        );
+
+        setFlights(selectedFlight ? [selectedFlight] : []);
       } catch (error) {
         console.error("Error fetching flights:", error);
+        setFlights([]);
       } finally {
         setLoading(false);
       }
     };
+
     fetchFlights();
-  }, [id, user]);
+  }, [router.isReady, id]);
 
   if (loading) {
     return <Loader />;
@@ -73,28 +87,33 @@ const BookFlightPage = () => {
     return <div>No flight data available for this ID.</div>;
   }
   const flight = flights[0];
+  const availableSeats = Number(flight?.availableSeats ?? 0);
+  const isSoldOut = availableSeats <= 0;
+
+  const durationStr = calculateDuration(flight.departureTime, flight.arrivalTime);
+
   const flightDetails = {
-    from: "Bengaluru",
-    to: "New Delhi",
-    date: "Thursday, Jan 16",
-    flightNo: "IX 2747",
-    aircraft: "Airbus A320",
-    airline: "Air India Express",
-    departureTime: "17:55",
-    arrivalTime: "20:55",
-    duration: "3h 0m",
-    departureTerminal: "Bengaluru International Airport, Terminal T2",
-    arrivalTerminal: "Indira Gandhi International Airport, Terminal T3",
+    from: flight.from || "Departure",
+    to: flight.to || "Destination",
+    date: formatDateTime(flight.departureTime),
+    flightNo: `${flight.flightName || "Flight"} #${flight.id}`,
+    aircraft: "Boeing 737 / Airbus A320",
+    airline: flight.flightName || "Airline",
+    departureTime: flight.departureTime ? new Date(flight.departureTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A",
+    arrivalTime: flight.arrivalTime ? new Date(flight.arrivalTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A",
+    duration: durationStr,
+    departureTerminal: `${flight.from} International Airport, Terminal T2`,
+    arrivalTerminal: `${flight.to} International Airport, Terminal T3`,
     cabinBaggage: "7 Kgs / Adult",
     checkInBaggage: "15 Kgs (1 piece only) / Adult",
   };
 
   const fareSummary = {
-    baseFare: 6124,
-    taxes: 1374,
+    baseFare: Number(flight.price || 0),
+    taxes: Math.round(Number(flight.price || 0) * 0.12),
     otherServices: 249,
     discounts: -250,
-    total: 7497,
+    total: Math.round(Number(flight.price || 0) * 1.12),
   };
 
   const promoOffers = [
@@ -152,9 +171,13 @@ const BookFlightPage = () => {
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
+    if (isSoldOut) {
+      setQuantity(0);
+      return;
+    }
     const value = Number.parseInt(e.target.value);
     setQuantity(
-      isNaN(value) ? 1 : Math.max(1, Math.min(value, flight.availableSeats))
+      isNaN(value) ? 1 : Math.max(1, Math.min(value, availableSeats))
     );
   };
 
@@ -167,23 +190,44 @@ const BookFlightPage = () => {
 
   const handlebooking = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    if (!user?.id || !flight?.id) {
+      setBookingError("Please log in before booking.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setBookingError(null);
     try {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `flight-${Date.now()}-${Math.random()}`;
+
       const data = await handleflightbooking(
-        user?.id,
-        flight?.id,
+        user.id,
+        Number(flight.id),
         quantity,
-        grandTotal
+        grandTotal,
+        idempotencyKey
       );
+
       const updateuser = {
         ...user,
-        bookings: [...user.bookings, data],
+        bookings: [...(user.bookings ?? []), data],
       };
+
       dispatch(setUser(updateuser));
       setopem(false);
       setQuantity(1);
-      router.push("/profile");
-    } catch (error) {
-      console.log(error);
+
+      await router.push("/profile");
+    } catch (error: any) {
+      console.error("Booking or navigation failed:", error);
+      setBookingError(error?.message || "Booking failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
   const BookingContent = () => (
@@ -194,6 +238,11 @@ const BookFlightPage = () => {
           Flight Booking Details
         </DialogTitle>
       </DialogHeader>
+      {bookingError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm mt-3">
+          {bookingError}
+        </div>
+      )}
       <div className="grid gap-6 mt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -295,13 +344,29 @@ const BookFlightPage = () => {
           </div>
         </div>
       </div>
-      <Button className="w-full mt-4" onClick={handlebooking}>
-        Proceed to Payment
+      <Button
+        className="w-full mt-4 bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400"
+        onClick={handlebooking}
+        disabled={isSubmitting || isSoldOut}
+      >
+        {isSubmitting
+          ? "Confirming Booking..."
+          : isSoldOut
+          ? "Flight Sold Out"
+          : "Proceed to Payment"}
       </Button>
     </DialogContent>
   );
   return (
     <div className="min-h-screen bg-[#f4f7fa]">
+      <Head>
+        <title>{flight ? `${flight.flightName || "Flight"} (${flight.from} to ${flight.to}) | MakeMyTour` : "Book Flight | MakeMyTour"}</title>
+        <meta
+          name="description"
+          content={`Book flight tickets for ${flight?.flightName || "Flight"} from ${flight?.from} to ${flight?.to} with MakeMyTour.`}
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -319,6 +384,19 @@ const BookFlightPage = () => {
                     <span className="bg-green-100 text-green-600 text-xs px-3 py-1 rounded-full font-medium">
                       CANCELLATION FEES APPLY
                     </span>
+                    {isSoldOut ? (
+                      <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-semibold">
+                        Sold Out
+                      </span>
+                    ) : availableSeats <= 5 ? (
+                      <span className="bg-amber-100 text-amber-700 text-xs px-3 py-1 rounded-full font-semibold">
+                        Only {availableSeats} seats left!
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-100 text-emerald-700 text-xs px-3 py-1 rounded-full font-medium">
+                        {availableSeats} seats available
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2" />
@@ -524,10 +602,19 @@ const BookFlightPage = () => {
                   </div>
                 </div>
               </div>
-              <Dialog open={open} onOpenChange={setopem}>
+              <Dialog
+                open={open}
+                onOpenChange={(val) => {
+                  setopem(val);
+                  if (val) setBookingError(null);
+                }}
+              >
                 <DialogTrigger asChild>
-                  <Button className="w-full bg-red-600 text-white">
-                    Book Now
+                  <Button
+                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 disabled:bg-gray-400"
+                    disabled={isSoldOut}
+                  >
+                    {isSoldOut ? "Flight Sold Out" : "Book Now"}
                   </Button>
                 </DialogTrigger>
                 {user ? (

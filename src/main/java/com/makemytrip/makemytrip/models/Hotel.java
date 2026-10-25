@@ -1,62 +1,68 @@
 package com.makemytrip.makemytrip.models;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "hotels")
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "hotels")
 public class Hotel {
+
     @Id
-    private String _id;
-    private String hotelName;
-    private String location;
-    private double pricePerNight;
-    private int availableRooms;
-    private String amenities;
-    // Getters and Setters
-    public String getId() {
-        return _id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false)
+    private String city;
+
+    private String address;
+    private Integer availableRooms;
+    private Integer starRating;
+
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal pricePerNight;
+
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    public Hotel() {}
+
+    @PrePersist
+    public void prePersist() {
+        if (active == null) {
+            active = true;
+        }
     }
 
-    public void setId(String id) {
-        this._id = id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setamenities(String amenities) {
-        this.amenities = amenities;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getamenities() {
-        return amenities;
-    }
+    public String getCity() { return city; }
+    public void setCity(String city) { this.city = city; }
 
-    public String gethotelName() {
-        return hotelName;
-    }
+    public String getAddress() { return address; }
+    public void setAddress(String address) { this.address = address; }
 
-    public void sethotelName(String hotelName) {
-        this.hotelName = hotelName;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
-    public int getAvailableRooms() {
-        return availableRooms;
-    }
-
-    public void setAvailableRooms(int availableRooms) {
+    public Integer getAvailableRooms() { return availableRooms; }
+    public void setAvailableRooms(Integer availableRooms) {
         this.availableRooms = availableRooms;
     }
 
-    public double getPricePerNight() {
-        return pricePerNight;
+    public Integer getStarRating() { return starRating; }
+    public void setStarRating(Integer starRating) {
+        this.starRating = starRating;
     }
 
-    public void setPricePerNight(double pricePerNight) {
+    public BigDecimal getPricePerNight() { return pricePerNight; }
+    public void setPricePerNight(BigDecimal pricePerNight) {
         this.pricePerNight = pricePerNight;
     }
+
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
 }
