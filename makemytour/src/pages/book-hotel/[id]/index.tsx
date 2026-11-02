@@ -34,6 +34,7 @@ import { useDispatch, useSelector } from "react-redux";
 import SignupDialog from "@/components/SignupDialog";
 import Loader from "@/components/Loader";
 import { setUser } from "@/store";
+import { getHotelImageData } from "@/lib/hotelImages";
 
 interface Hotel {
   id: string | number;
@@ -362,39 +363,59 @@ const BookHotelPage = () => {
             </div>
 
             {/* Image Gallery */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="col-span-2 relative group cursor-pointer overflow-hidden rounded-xl">
-                <img
-                  src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800"
-                  alt="Hotel Main"
-                  className="w-full h-80 object-cover hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute bottom-4 left-4 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full flex items-center space-x-1">
-                  <Camera className="w-4 h-4" />
-                  <span className="text-xs font-medium">Property Photos</span>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="relative group cursor-pointer overflow-hidden rounded-xl">
-                  <img
-                    src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800"
-                    alt="Hotel Room"
-                    className="w-full h-[152px] object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <div className="relative group cursor-pointer overflow-hidden rounded-xl">
-                  <img
-                    src="https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800"
-                    alt="Hotel Amenity"
-                    className="w-full h-[152px] object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute bottom-4 left-4 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full flex items-center space-x-1">
-                    <Image className="w-4 h-4" />
-                    <span className="text-xs font-medium">Guest Photos</span>
+            {(() => {
+              const imageData = getHotelImageData(hotel);
+              const guestPhoto1 = imageData.guestPhotos?.[0] || "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80";
+              const guestPhoto2 = imageData.guestPhotos?.[1] || "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80";
+
+              return (
+                <div className="grid grid-cols-3 gap-4 mb-8">
+                  <div className="col-span-2 relative group cursor-pointer overflow-hidden rounded-xl">
+                    <img
+                      src={imageData.propertyPhoto}
+                      alt={hotel?.hotelName || "Hotel Main"}
+                      className="w-full h-80 object-cover hover:scale-105 transition-transform duration-300"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
+                      }}
+                    />
+                    <div className="absolute bottom-4 left-4 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full flex items-center space-x-1">
+                      <Camera className="w-4 h-4" />
+                      <span className="text-xs font-medium">Property Photos</span>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="relative group cursor-pointer overflow-hidden rounded-xl">
+                      <img
+                        src={guestPhoto1}
+                        alt="Guest Photo 1"
+                        className="w-full h-[152px] object-cover hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80";
+                        }}
+                      />
+                    </div>
+                    <div className="relative group cursor-pointer overflow-hidden rounded-xl">
+                      <img
+                        src={guestPhoto2}
+                        alt="Guest Photo 2"
+                        className="w-full h-[152px] object-cover hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=800&q=80";
+                        }}
+                      />
+                      <div className="absolute bottom-4 left-4 bg-black/60 text-white backdrop-blur-md px-3 py-1 rounded-full flex items-center space-x-1">
+                        <Image className="w-4 h-4" />
+                        <span className="text-xs font-medium">Guest Photos</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Description & Overview */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">

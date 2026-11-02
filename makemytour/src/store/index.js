@@ -1,4 +1,5 @@
 import { configureStore, createSlice } from "@reduxjs/toolkit";
+import flightTrackerReducer from "@/features/flight-status/store/flightTrackerSlice";
 
 
 const saveusertolocalstorage = (user) => {
@@ -38,6 +39,7 @@ export const { setUser, clearUser, setAuthLoaded } = userSlice.actions;
 const store = configureStore({
   reducer: {
     user: userSlice.reducer,
+    flightTracker: flightTrackerReducer,
   },
 });
 

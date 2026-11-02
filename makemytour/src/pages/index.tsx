@@ -3,6 +3,8 @@ import { getflight, gethotel, searchflights, searchhotels } from "@/api";
 import Loader from "@/components/Loader";
 import { SearchSelect } from "@/components/SearchSelect";
 import SignupDialog from "@/components/SignupDialog";
+import UnderDevelopmentDialog from "@/components/UnderDevelopmentDialog";
+import { getHotelImageData } from "@/lib/hotelImages";
 import { Button } from "@/components/ui/button";
 import {
   AlertCircle,
@@ -21,9 +23,11 @@ import {
   Users,
 } from "lucide-react";
 import { calculateDuration } from "@/lib/utils";
+import TrackFlightButton from "@/features/flight-status/components/TrackFlightButton";
+import { setFlightHomeActive } from "@/features/flight-status/store/flightTrackerSlice";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 export default function Home() {
   const [bookingtype, setbookingtype] = useState("flights");
@@ -40,8 +44,21 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [sortBy, setSortBy] = useState<string>("price");
   const [sortDir, setSortDir] = useState<string>("asc");
+  const [underDevService, setUnderDevService] = useState<string | null>(null);
   const user = useSelector((state: any) => state.user.user);
   const router = useRouter();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(setFlightHomeActive(bookingtype === "flights"));
+    return () => {
+      dispatch(setFlightHomeActive(false));
+    };
+  }, [bookingtype, dispatch]);
+
+  const handleServiceClick = (serviceName: string) => {
+    setUnderDevService(serviceName);
+  };
   const offers = [
     {
       title: "Domestic Flights",
@@ -265,13 +282,41 @@ export default function Home() {
                 setsearchresult(hotel);
               }}
             />
-            <NavItem icon={<HomeIcon />} text="Homestays" />
-            <NavItem icon={<Umbrella />} text="Holiday" />
-            <NavItem icon={<Train />} text="Trains" />
-            <NavItem icon={<Bus />} text="Buses" />
-            <NavItem icon={<Car />} text="Cabs" />
-            <NavItem icon={<CreditCard />} text="Forex" />
-            <NavItem icon={<Shield />} text="Insurance" />
+            <NavItem
+              icon={<HomeIcon />}
+              text="Homestays"
+              onClick={() => handleServiceClick("Homestays")}
+            />
+            <NavItem
+              icon={<Umbrella />}
+              text="Holiday"
+              onClick={() => handleServiceClick("Holiday Packages")}
+            />
+            <NavItem
+              icon={<Train />}
+              text="Trains"
+              onClick={() => handleServiceClick("Trains")}
+            />
+            <NavItem
+              icon={<Bus />}
+              text="Buses"
+              onClick={() => handleServiceClick("Buses")}
+            />
+            <NavItem
+              icon={<Car />}
+              text="Cabs"
+              onClick={() => handleServiceClick("Cabs")}
+            />
+            <NavItem
+              icon={<CreditCard />}
+              text="Forex"
+              onClick={() => handleServiceClick("Forex")}
+            />
+            <NavItem
+              icon={<Shield />}
+              text="Insurance"
+              onClick={() => handleServiceClick("Insurance")}
+            />
           </div>
         </nav>
 
@@ -439,28 +484,47 @@ export default function Home() {
                               <p className="text-xs text-gray-400">Per traveler</p>
                               <p className="text-xl font-black text-gray-900">₹{result.price}</p>
                             </div>
-                            <Button
-                              className={`px-5 font-semibold ${
-                                isSoldOut
-                                  ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
-                                  : "bg-red-600 hover:bg-red-700 text-white"
-                              }`}
-                              disabled={isSoldOut}
-                              onClick={() => handlebooknow(result.id)}
-                            >
-                              {isSoldOut ? "Sold Out" : "Book Now"}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <TrackFlightButton flightId={result.id} />
+                              <Button
+                                className={`px-5 font-semibold ${
+                                  isSoldOut
+                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
+                                    : "bg-red-600 hover:bg-red-700 text-white"
+                                }`}
+                                disabled={isSoldOut}
+                                onClick={() => handlebooknow(result.id)}
+                              >
+                                {isSoldOut ? "Sold Out" : "Book Now"}
+                              </Button>
+                            </div>
                           </div>
                         </>
                       ) : (
                         <>
                           <div>
-                            <h3 className="font-semibold text-lg text-gray-900 mb-1">
+                            <div className="relative h-44 -mx-5 -mt-5 mb-4 overflow-hidden rounded-t-xl group">
+                              <img
+                                src={getHotelImageData(result).propertyPhoto}
+                                alt={result.hotelName}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                loading="lazy"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => {
+                                  e.currentTarget.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80";
+                                }}
+                              />
+                              <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded-md text-xs font-semibold flex items-center gap-1">
+                                <span>★</span>
+                                <span>{result.starRating ?? 4}.0</span>
+                              </div>
+                            </div>
+                            <h3 className="font-semibold text-lg text-gray-900 mb-1 line-clamp-1">
                               {result.hotelName}
                             </h3>
                             <p className="text-gray-600 text-sm flex items-center">
-                              <MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />
-                              {result.location}
+                              <MapPin className="w-3.5 h-3.5 mr-1 text-gray-400 shrink-0" />
+                              <span className="truncate">{result.location}</span>
                             </p>
                             <p className="text-xs text-emerald-600 mt-2 font-medium">
                               {result.availableRooms ?? 10} rooms available
@@ -519,7 +583,23 @@ export default function Home() {
             <h2 className="text-2xl font-bold mb-8 text-white">Best Offers</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {offers.map((offer, index) => (
-                <OfferCard key={index} {...offer} />
+                <OfferCard
+                  key={index}
+                  {...offer}
+                  onBookNow={() => {
+                    if (offer.title.toLowerCase().includes("flight")) {
+                      setbookingtype("flights");
+                      setsearchresult(flight);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    } else if (offer.title.toLowerCase().includes("hotel")) {
+                      setbookingtype("hotels");
+                      setsearchresult(hotel);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    } else {
+                      handleServiceClick(offer.title);
+                    }
+                  }}
+                />
               ))}
             </div>
           </section>
@@ -555,18 +635,43 @@ export default function Home() {
           {/* Download App Section */}
           <DownloadApp />
         </div>
+
+        <UnderDevelopmentDialog
+          open={underDevService !== null}
+          onOpenChange={(open) => {
+            if (!open) setUnderDevService(null);
+          }}
+          serviceName={underDevService || ""}
+          onExploreFlights={() => {
+            setbookingtype("flights");
+            setHasSearched(false);
+            setSearchError(null);
+            setsearchresult(flight);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+          onExploreHotels={() => {
+            setbookingtype("hotels");
+            setHasSearched(false);
+            setSearchError(null);
+            setsearchresult(hotel);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       </main>
     </div>
   );
 }
-const OfferCard = ({ title, description, imageUrl }: any) => {
+const OfferCard = ({ title, description, imageUrl, onBookNow }: any) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
       <img src={imageUrl} alt={title} className="w-full h-48 object-cover" />
       <div className="p-4">
         <h3 className="font-semibold text-lg mb-2">{title}</h3>
         <p className="text-gray-600 text-sm">{description}</p>
-        <button className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+        <button
+          onClick={onBookNow}
+          className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors cursor-pointer"
+        >
           Book Now
         </button>
       </div>

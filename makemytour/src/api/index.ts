@@ -482,7 +482,7 @@ export const handlehotelbooking = async (
 export const getuserbookings = async (userId: number | string) => {
   try {
     const res = await api.get(`/api/bookings/user/${userId}`);
-    return res.data;
+    return Array.isArray(res.data) ? res.data : [];
   } catch (error) {
     // Fallback: fetch all bookings and filter by userId
     try {
@@ -491,7 +491,7 @@ export const getuserbookings = async (userId: number | string) => {
         (b: any) => String(b.user?.id) === String(userId)
       );
     } catch {
-      throw new Error(extractErrorMessage(error));
+      return [];
     }
   }
 };

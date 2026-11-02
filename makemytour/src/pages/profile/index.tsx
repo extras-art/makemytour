@@ -232,14 +232,8 @@ const ProfilePage = () => {
       setBookingsLoading(true);
       setBookingsError(null);
       const data = await getuserbookings(user.id);
-
-      const userBookings = Array.isArray(data)
-        ? data.filter(
-            (b: any) => !b.user?.id || String(b.user.id) === String(user.id)
-          )
-        : [];
-
-      setBookings(userBookings.map(normalizeBooking));
+      const list = Array.isArray(data) ? data : [];
+      setBookings(list.map(normalizeBooking));
     } catch (err: any) {
       console.error("Failed to fetch bookings:", err);
       setBookingsError(

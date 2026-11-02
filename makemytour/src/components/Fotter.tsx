@@ -93,7 +93,14 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-white">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert("Train Schedule & Booking service is currently under development. Please check back soon!");
+                  }}
+                  className="hover:text-white"
+                >
                   Train Schedule
                 </a>
               </li>

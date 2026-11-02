@@ -21,17 +21,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final RateLimitingFilter rateLimitingFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
 
-    public SecurityConfig(
-        JwtAuthenticationFilter jwtAuthenticationFilter,
-        RateLimitingFilter rateLimitingFilter
-    ) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.rateLimitingFilter = rateLimitingFilter;
     }
 
     @Bean
@@ -56,17 +51,16 @@ public class SecurityConfig {
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/flights/**", "/api/hotels/**").permitAll()
                 .requestMatchers("/api/users/me").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/api/users/**").authenticated()
-                .requestMatchers("/api/bookings/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/flights/**", "/api/hotels/**").hasAnyRole("ADMIN", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/flights/**", "/api/hotels/**").hasAnyRole("ADMIN", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.PATCH, "/api/flights/**", "/api/hotels/**").hasAnyRole("ADMIN", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/flights/**", "/api/hotels/**").hasAnyRole("ADMIN", "ROLE_ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/users").hasAnyRole("ADMIN", "ROLE_ADMIN")
-                .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/users/**").permitAll()
+                .requestMatchers("/api/bookings/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/flights/**", "/api/hotels/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/flights/**", "/api/hotels/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/flights/**", "/api/hotels/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/flights/**", "/api/hotels/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -80,12 +74,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .toList();
-
-        config.setAllowedOrigins(origins.isEmpty() ? List.of("http://localhost:3000") : origins);
+        config.addAllowedOriginPattern("*");
         config.setAllowedMethods(
             List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
         );

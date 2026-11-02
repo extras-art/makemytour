@@ -28,7 +28,7 @@ public class Users {
     @Column(nullable = false, length = 50)
     private String role = "ROLE_USER";
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     public Users() {}

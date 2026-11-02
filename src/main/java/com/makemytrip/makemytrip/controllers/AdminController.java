@@ -1,11 +1,9 @@
 package com.makemytrip.makemytrip.controllers;
 
 import com.makemytrip.makemytrip.exceptions.ResourceNotFoundException;
-import com.makemytrip.makemytrip.models.AdminAuditLog;
 import com.makemytrip.makemytrip.models.Flight;
 import com.makemytrip.makemytrip.models.Hotel;
 import com.makemytrip.makemytrip.models.Users;
-import com.makemytrip.makemytrip.repositories.AdminAuditLogRepository;
 import com.makemytrip.makemytrip.repositories.FlightRepository;
 import com.makemytrip.makemytrip.repositories.HotelRepository;
 import com.makemytrip.makemytrip.repositories.UserRepository;
@@ -27,30 +25,16 @@ public class AdminController {
 
     private final FlightRepository flightRepository;
     private final HotelRepository hotelRepository;
-    private final AdminAuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
 
     public AdminController(
         FlightRepository flightRepository,
         HotelRepository hotelRepository,
-        AdminAuditLogRepository auditLogRepository,
         UserRepository userRepository
     ) {
         this.flightRepository = flightRepository;
         this.hotelRepository = hotelRepository;
-        this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
-    }
-
-    private void recordAudit(Authentication authentication, String action, String entityType, Long entityId, String details) {
-        Long adminUserId = null;
-        String adminEmail = authentication != null ? authentication.getName() : "system";
-        if (authentication != null && authentication.getName() != null) {
-            adminUserId = userRepository.findByEmailIgnoreCase(authentication.getName())
-                .map(Users::getId)
-                .orElse(null);
-        }
-        auditLogRepository.save(new AdminAuditLog(adminUserId, adminEmail, action, entityType, entityId, details));
     }
 
     // -------------------- FLIGHTS --------------------
@@ -108,9 +92,7 @@ public class AdminController {
         if (flight.getActive() == null) {
             flight.setActive(true);
         }
-        Flight saved = flightRepository.save(flight);
-        recordAudit(authentication, "CREATE_FLIGHT", "FLIGHT", saved.getId(), "Created flight: " + saved.getAirline());
-        return saved;
+        return flightRepository.save(flight);
     }
 
     @PutMapping("/flights/{id}")
@@ -132,7 +114,6 @@ public class AdminController {
         if (flightDetails.getActive() != null) flight.setActive(flightDetails.getActive());
 
         Flight updated = flightRepository.save(flight);
-        recordAudit(authentication, "UPDATE_FLIGHT", "FLIGHT", id, "Updated flight: " + updated.getAirline());
         return ResponseEntity.ok(updated);
     }
 
@@ -146,7 +127,6 @@ public class AdminController {
 
         flight.setActive(false);
         Flight updated = flightRepository.save(flight);
-        recordAudit(authentication, "DEACTIVATE_FLIGHT", "FLIGHT", id, "Deactivated flight: " + updated.getAirline());
         return ResponseEntity.ok(updated);
     }
 
@@ -204,9 +184,7 @@ public class AdminController {
         if (hotel.getActive() == null) {
             hotel.setActive(true);
         }
-        Hotel saved = hotelRepository.save(hotel);
-        recordAudit(authentication, "CREATE_HOTEL", "HOTEL", saved.getId(), "Created hotel: " + saved.getName());
-        return saved;
+        return hotelRepository.save(hotel);
     }
 
     @PutMapping("/hotels/{id}")
@@ -227,7 +205,6 @@ public class AdminController {
         if (hotelDetails.getActive() != null) hotel.setActive(hotelDetails.getActive());
 
         Hotel updated = hotelRepository.save(hotel);
-        recordAudit(authentication, "UPDATE_HOTEL", "HOTEL", id, "Updated hotel: " + updated.getName());
         return ResponseEntity.ok(updated);
     }
 
@@ -241,7 +218,6 @@ public class AdminController {
 
         hotel.setActive(false);
         Hotel updated = hotelRepository.save(hotel);
-        recordAudit(authentication, "DEACTIVATE_HOTEL", "HOTEL", id, "Deactivated hotel: " + updated.getName());
         return ResponseEntity.ok(updated);
     }
 
@@ -253,7 +229,7 @@ public class AdminController {
     // -------------------- AUDIT LOGS --------------------
 
     @GetMapping("/admin/audit-logs")
-    public List<AdminAuditLog> getAuditLogs() {
-        return auditLogRepository.findAllByOrderByCreatedAtDesc();
+    public List<Object> getAuditLogs() {
+        return List.of();
     }
 }

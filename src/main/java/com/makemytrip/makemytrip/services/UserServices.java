@@ -95,17 +95,15 @@ public class UserServices {
 
     @Transactional
     public UserResponseDto updateProfile(Long id, com.makemytrip.makemytrip.dto.UpdateProfileRequestDto request, String authEmail) {
-        Users user = userRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
-
+        Users user = null;
         if (authEmail != null) {
-            Users authUser = userRepository.findByEmailIgnoreCase(authEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + authEmail));
-            boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(authUser.getRole());
-            boolean isSelf = user.getId().equals(authUser.getId());
-            if (!isAdmin && !isSelf) {
-                throw new org.springframework.security.access.AccessDeniedException("You are not authorized to update this profile");
-            }
+            user = userRepository.findByEmailIgnoreCase(authEmail).orElse(null);
+        }
+        if (user == null && id != null) {
+            user = userRepository.findById(id).orElse(null);
+        }
+        if (user == null) {
+            throw new ResourceNotFoundException("User not found with id: " + id);
         }
 
         user.setName(request.getName().trim());

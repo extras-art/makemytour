@@ -1,6 +1,6 @@
 import React from "react";
 import SignupDialog from "./SignupDialog";
-import { LogOut, Plane, ShieldCheck, User } from "lucide-react";
+import { LogOut, Plane, Radio, ShieldCheck, User } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   DropdownMenu,
@@ -20,7 +20,12 @@ import Link from "next/link";
 const Navbar = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.user.user);
+  const isFlightHomeActive = useSelector(
+    (state: any) => state.flightTracker?.isFlightHomeActive
+  );
   const router = useRouter();
+
+  const showFlightStatus = router.pathname === "/" && Boolean(isFlightHomeActive);
 
   const handleLogout = async () => {
     try {
@@ -46,7 +51,18 @@ const Navbar = () => {
           </span>
         </Link>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3 sm:space-x-4">
+          {showFlightStatus && (
+            <Link
+              href="/flight-status"
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-gray-700 hover:text-red-600 hover:bg-red-50 border border-gray-200 transition-colors"
+            >
+              <Radio className="w-3.5 h-3.5 text-red-600 animate-pulse" />
+              <span className="hidden sm:inline">Live Flight Status</span>
+              <span className="sm:hidden">Tracker</span>
+            </Link>
+          )}
+
           {user ? (
             <>
               {isAdmin && (

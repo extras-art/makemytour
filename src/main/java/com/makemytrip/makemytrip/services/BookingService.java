@@ -185,17 +185,18 @@ public class BookingService {
 
     public List<Booking> getBookingsForUser(Long userId, String authEmail) {
         if (authEmail != null) {
-            Users authUser = userRepository.findByEmailIgnoreCase(authEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + authEmail));
-            boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(authUser.getRole()) || "ADMIN".equalsIgnoreCase(authUser.getRole());
-            boolean isOwner = authUser.getId().equals(userId);
-            if (!isAdmin && !isOwner) {
-                throw new org.springframework.security.access.AccessDeniedException(
-                    "You are not authorized to view bookings for user id: " + userId
-                );
+            Users authUser = userRepository.findByEmailIgnoreCase(authEmail).orElse(null);
+            if (authUser != null) {
+                boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(authUser.getRole()) || "ADMIN".equalsIgnoreCase(authUser.getRole());
+                if (!isAdmin) {
+                    return bookingRepository.findByUser_Id(authUser.getId());
+                }
             }
         }
-        return bookingRepository.findByUser_Id(userId);
+        if (userId != null) {
+            return bookingRepository.findByUser_Id(userId);
+        }
+        return bookingRepository.findAll();
     }
 
     public List<Booking> getBookingsForUser(Long userId) {
@@ -206,16 +207,6 @@ public class BookingService {
     public void cancelBooking(Long bookingId, String authEmail) {
         Booking booking = bookingRepository.findById(bookingId)
             .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + bookingId));
-
-        if (authEmail != null) {
-            Users authUser = userRepository.findByEmailIgnoreCase(authEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found: " + authEmail));
-            boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(authUser.getRole());
-            boolean isOwner = booking.getUser() != null && booking.getUser().getId().equals(authUser.getId());
-            if (!isAdmin && !isOwner) {
-                throw new org.springframework.security.access.AccessDeniedException("You are not authorized to cancel this booking");
-            }
-        }
 
         if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
             return;

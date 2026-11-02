@@ -17,18 +17,18 @@ public class CreateBookingRequestDto {
     private LocalDate checkOutDate;
     private String idempotencyKey;
 
-    public CreateBookingRequestDto() {}
+    public CreateBookingRequestDto() {
+    }
 
     public CreateBookingRequestDto(
-        Long userId,
-        Long flightId,
-        Long hotelId,
-        Integer quantity,
-        Integer nights,
-        LocalDate checkInDate,
-        LocalDate checkOutDate,
-        String idempotencyKey
-    ) {
+            Long userId,
+            Long flightId,
+            Long hotelId,
+            Integer quantity,
+            Integer nights,
+            LocalDate checkInDate,
+            LocalDate checkOutDate,
+            String idempotencyKey) {
         this.userId = userId;
         this.flightId = flightId;
         this.hotelId = hotelId;
@@ -39,27 +39,67 @@ public class CreateBookingRequestDto {
         this.idempotencyKey = idempotencyKey;
     }
 
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public Long getUserId() {
+        return userId;
+    }
 
-    public Long getFlightId() { return flightId; }
-    public void setFlightId(Long flightId) { this.flightId = flightId; }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-    public Long getHotelId() { return hotelId; }
-    public void setHotelId(Long hotelId) { this.hotelId = hotelId; }
+    public Long getFlightId() {
+        return flightId;
+    }
 
-    public Integer getQuantity() { return quantity != null ? quantity : 1; }
-    public void setQuantity(Integer quantity) { this.quantity = quantity; }
+    public void setFlightId(Long flightId) {
+        this.flightId = flightId;
+    }
 
-    public Integer getNights() { return nights != null ? nights : 1; }
-    public void setNights(Integer nights) { this.nights = nights; }
+    public Long getHotelId() {
+        return hotelId;
+    }
 
-    public LocalDate getCheckInDate() { return checkInDate; }
-    public void setCheckInDate(LocalDate checkInDate) { this.checkInDate = checkInDate; }
+    public void setHotelId(Long hotelId) {
+        this.hotelId = hotelId;
+    }
 
-    public LocalDate getCheckOutDate() { return checkOutDate; }
-    public void setCheckOutDate(LocalDate checkOutDate) { this.checkOutDate = checkOutDate; }
+    public Integer getQuantity() {
+        return quantity != null ? quantity : 1;
+    }
 
-    public String getIdempotencyKey() { return idempotencyKey; }
-    public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+    public void setQuantity(Integer quantity) {
+        this.quantity = quantity;
+    }
+
+    public Integer getNights() {
+        return nights != null ? nights : 1;
+    }
+
+    public void setNights(Integer nights) {
+        this.nights = nights;
+    }
+
+    public LocalDate getCheckInDate() {
+        return checkInDate;
+    }
+
+    public void setCheckInDate(LocalDate checkInDate) {
+        this.checkInDate = checkInDate;
+    }
+
+    public LocalDate getCheckOutDate() {
+        return checkOutDate;
+    }
+
+    public void setCheckOutDate(LocalDate checkOutDate) {
+        this.checkOutDate = checkOutDate;
+    }
+
+    public String getIdempotencyKey() {
+        return idempotencyKey;
+    }
+
+    public void setIdempotencyKey(String idempotencyKey) {
+        this.idempotencyKey = idempotencyKey;
+    }
 }

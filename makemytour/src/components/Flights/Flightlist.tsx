@@ -10,6 +10,7 @@ import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import { getallflightsadmin, deactivateflight } from "@/api";
 import Loader from "../Loader";
+import TrackFlightButton from "@/features/flight-status/components/TrackFlightButton";
 
 interface FlightListProps {
   onSelect: (flight: any) => void;
@@ -112,6 +113,7 @@ const FlightList = ({ onSelect, refreshTrigger, onRefresh }: FlightListProps) =>
                     </span>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
+                    <TrackFlightButton flightId={f.id} size="sm" />
                     <Button
                       size="sm"
                       variant="outline"
