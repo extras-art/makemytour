@@ -5,6 +5,7 @@ import {
   updateFlightStatuses,
   addNotification,
   setLoading,
+  pruneInactiveFlights,
 } from "../store/flightTrackerSlice";
 import { FlightNotification, FlightStatusUpdate } from "../types/flightStatus.types";
 
@@ -82,6 +83,12 @@ export const useFlightStatusPoller = ({
         const freshStatuses = await fetchBatchFlightStatus(trackedFlightIds);
         const prevMap = prevStatusesRef.current;
 
+        // Gracefully prune any tracked flight IDs that are no longer active in the backend catalog
+        const returnedIds = freshStatuses.map((s) => s.flightId);
+        if (returnedIds.length < trackedFlightIds.length) {
+          dispatch(pruneInactiveFlights(returnedIds));
+        }
+
         // Perform diff detection only after initial fetch
         if (!isInitialFetchRef.current) {
           for (const incoming of freshStatuses) {
@@ -90,9 +97,10 @@ export const useFlightStatusPoller = ({
             if (prev) {
               const statusChanged = prev.status !== incoming.status;
               const delayChanged = prev.delayMinutes !== incoming.delayMinutes;
-              const etaChanged = prev.estimatedArrival !== incoming.estimatedArrival;
 
-              if (statusChanged || delayChanged || etaChanged) {
+              // Ensure notifications only fire on genuine operational status/delay transitions,
+              // not when the daily catalog refresh shifts baseline schedule for an on-time flight
+              if (statusChanged || delayChanged) {
                 const notif: FlightNotification = {
                   id: `${incoming.flightId}-${Date.now()}`,
                   flightId: incoming.flightId,

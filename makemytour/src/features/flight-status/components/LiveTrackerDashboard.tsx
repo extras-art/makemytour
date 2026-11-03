@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Plane,
@@ -26,7 +26,7 @@ import { useFlightStatusPoller } from "../hooks/useFlightStatusPoller";
 import { FlightStatusCard } from "./FlightStatusCard";
 import { NotificationCenter } from "./NotificationCenter";
 import { TrackFlightButton } from "./TrackFlightButton";
-import { trackFlight } from "../store/flightTrackerSlice";
+import { trackFlight, pruneInactiveFlights } from "../store/flightTrackerSlice";
 import { fetchAllFlightStatuses } from "../api/flightStatusApi";
 import { FlightStatusUpdate, FlightStatusEnum } from "../types/flightStatus.types";
 
@@ -50,21 +50,29 @@ export const LiveTrackerDashboard: React.FC = () => {
 
   // Catalog of all available flights for search & adding to watchlist
   const [allFlights, setAllFlights] = useState<FlightStatusUpdate[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  const loadAllFlights = useCallback(async () => {
+    setCatalogLoading(true);
+    try {
+      const list = await fetchAllFlightStatuses();
+      setAllFlights(list);
+      // Gracefully reconcile watchlist: prune any tracked flights no longer in active catalog
+      const activeIds = list.map((f) => f.flightId);
+      dispatch(pruneInactiveFlights(activeIds));
+    } catch (err) {
+      console.error("Failed to load flight catalog:", err);
+    } finally {
+      setCatalogLoading(false);
+    }
+  }, [dispatch]);
+
   useEffect(() => {
-    const loadAllFlights = async () => {
-      try {
-        const list = await fetchAllFlightStatuses();
-        setAllFlights(list);
-      } catch (err) {
-        console.error("Failed to load flight catalog:", err);
-      }
-    };
     loadAllFlights();
-  }, []);
+  }, [loadAllFlights]);
 
   // Filtered tracked flights for display
   const trackedList = useMemo(() => {
@@ -148,12 +156,27 @@ export const LiveTrackerDashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Actions: Refresh + Notification Center */}
+            {/* Actions: Refresh Catalog + Live Refresh + Notification Center */}
             <div className="flex items-center space-x-3 self-start md:self-auto">
               <div className="hidden sm:flex items-center text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping mr-2" />
                 <span className="font-semibold">Live Polling Active (15s)</span>
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  loadAllFlights();
+                  refetch();
+                }}
+                disabled={catalogLoading || loading}
+                className="text-xs text-blue-700 bg-blue-50/70 border-blue-200 hover:bg-blue-100/80 font-semibold flex items-center gap-1.5"
+                title="Sync flight catalog from backend database"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${catalogLoading ? "animate-spin text-blue-600" : ""}`} />
+                <span>Refresh Catalog</span>
+              </Button>
 
               <Button
                 variant="outline"
@@ -324,7 +347,7 @@ export const LiveTrackerDashboard: React.FC = () => {
             </h3>
             <p className="text-xs text-gray-500 mb-6 leading-relaxed">
               {trackedFlightIds.length === 0
-                ? "Search from our 39 active flights above or track our most popular routes to monitor live schedules and delay alerts."
+                ? `Search from our ${allFlights.length > 0 ? allFlights.length : "active"} active flights above or track our most popular routes to monitor live schedules and delay alerts.`
                 : "Try switching back to 'All' to see all your tracked flights."}
             </p>
             {trackedFlightIds.length === 0 ? (

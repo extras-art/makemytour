@@ -5,7 +5,11 @@ import com.makemytrip.makemytrip.features.flightstatus.dto.FlightStatusUpdateDTO
 import com.makemytrip.makemytrip.features.flightstatus.model.FlightStatusEnum;
 import com.makemytrip.makemytrip.models.Flight;
 import com.makemytrip.makemytrip.repositories.FlightRepository;
+import com.makemytrip.makemytrip.sqldailyupdate.event.InventoryRefreshedEvent;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,6 +30,101 @@ public class FlightStatusSimulatorService {
 
     public FlightStatusSimulatorService(FlightRepository flightRepository) {
         this.flightRepository = flightRepository;
+    }
+
+    @PostConstruct
+    public void initCatalog() {
+        try {
+            List<Flight> activeFlights = flightRepository.findByActiveTrue();
+            for (Flight flight : activeFlights) {
+                if (flight.getId() != null) {
+                    statusCache.computeIfAbsent(flight.getId(), this::initializeFlightStatus);
+                }
+            }
+        } catch (Exception ignored) {
+            // Safe fallback during context bootstrapping or test runners
+        }
+    }
+
+    /**
+     * Decoupled Spring Event Listener receiving daily inventory refresh notifications.
+     * TransactionalEventListener AFTER_COMMIT guarantees DB changes have committed.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void handleInventoryRefreshed(InventoryRefreshedEvent event) {
+        if (event == null) return;
+
+        // 1. Deactivated IDs: Remove from active simulator catalog
+        for (Long deactivatedId : event.getDeactivatedFlightIds()) {
+            if (deactivatedId != null) {
+                statusCache.remove(deactivatedId);
+            }
+        }
+
+        // 2. New IDs: Load from FlightRepository and initialize fresh ON_TIME simulator states
+        for (Long newId : event.getNewFlightIds()) {
+            if (newId != null) {
+                flightRepository.findById(newId).ifPresent(flight -> {
+                    if (Boolean.TRUE.equals(flight.getActive())) {
+                        FlightStatusUpdateDTO dto = buildFreshOnTimeStatus(flight);
+                        statusCache.put(flight.getId(), dto);
+                    }
+                });
+            }
+        }
+
+        // 3. Existing Active IDs: Preserve current simulated states (DELAYED, BOARDING, IN_AIR, LANDED) and delay reasons.
+        // If an unbooked flight's base schedule shifted and status is ON_TIME or DELAYED,
+        // recalculate revisedDeparture and estimatedArrival cleanly without triggering false push notifications.
+        for (Long updatedId : event.getUpdatedFlightIds()) {
+            if (updatedId != null) {
+                FlightStatusUpdateDTO existing = statusCache.get(updatedId);
+                if (existing != null) {
+                    flightRepository.findById(updatedId).ifPresent(flight -> {
+                        existing.setOriginalDeparture(flight.getDepartureTime());
+                        existing.setOriginalArrival(flight.getArrivalTime());
+                        if (existing.getStatus() == FlightStatusEnum.ON_TIME || existing.getStatus() == FlightStatusEnum.DELAYED) {
+                            int delay = existing.getDelayMinutes();
+                            existing.setRevisedDeparture(flight.getDepartureTime() != null ? flight.getDepartureTime().plusMinutes(delay) : null);
+                            existing.setEstimatedArrival(flight.getArrivalTime() != null ? flight.getArrivalTime().plusMinutes(delay) : null);
+                        }
+                        existing.setLastUpdatedTimestamp(LocalDateTime.now());
+                    });
+                }
+            }
+        }
+    }
+
+    private FlightStatusUpdateDTO buildFreshOnTimeStatus(Flight flight) {
+        FlightStatusUpdateDTO dto = new FlightStatusUpdateDTO();
+        dto.setFlightId(flight.getId());
+        dto.setAirline(flight.getAirline());
+        dto.setSource(flight.getSource());
+        dto.setDestination(flight.getDestination());
+
+        LocalDateTime departure = flight.getDepartureTime() != null ? flight.getDepartureTime() : LocalDateTime.now().plusHours(2);
+        LocalDateTime arrival = flight.getArrivalTime() != null ? flight.getArrivalTime() : departure.plusHours(2).plusMinutes(15);
+
+        dto.setOriginalDeparture(departure);
+        dto.setOriginalArrival(arrival);
+        dto.setRevisedDeparture(departure);
+        dto.setEstimatedArrival(arrival);
+
+        long id = flight.getId() != null ? flight.getId() : 1L;
+        String terminal = "T" + ((id % 3) + 1);
+        char gateLetter = (char) ('A' + (id % 4));
+        int gateNumber = (int) ((id * 3) % 20 + 1);
+        String gate = "Gate " + gateLetter + gateNumber;
+
+        dto.setTerminal(terminal);
+        dto.setGate(gate);
+        dto.setStatus(FlightStatusEnum.ON_TIME);
+        dto.setStatusDisplay("On Time");
+        dto.setDelayMinutes(0);
+        dto.setDelayReason(null);
+        dto.setProgressPercentage(0);
+        dto.setLastUpdatedTimestamp(LocalDateTime.now());
+        return dto;
     }
 
     /**
@@ -49,7 +148,7 @@ public class FlightStatusSimulatorService {
                 try {
                     result.add(getStatus(id));
                 } catch (ResourceNotFoundException ignored) {
-                    // Skip invalid / not-found flight ids gracefully
+                    // Skip invalid / not-found / deactivated flight ids gracefully
                 }
             }
         }
@@ -63,7 +162,10 @@ public class FlightStatusSimulatorService {
         List<Flight> activeFlights = flightRepository.findByActiveTrue();
         List<FlightStatusUpdateDTO> statuses = new ArrayList<>();
         for (Flight flight : activeFlights) {
-            statuses.add(getStatus(flight.getId()));
+            try {
+                statuses.add(getStatus(flight.getId()));
+            } catch (ResourceNotFoundException ignored) {
+            }
         }
         return statuses;
     }
@@ -165,6 +267,10 @@ public class FlightStatusSimulatorService {
     private FlightStatusUpdateDTO initializeFlightStatus(Long flightId) {
         Flight flight = flightRepository.findById(flightId)
             .orElseThrow(() -> new ResourceNotFoundException("Flight not found with id: " + flightId));
+
+        if (Boolean.FALSE.equals(flight.getActive())) {
+            throw new ResourceNotFoundException("Flight is deactivated with id: " + flightId);
+        }
 
         FlightStatusUpdateDTO dto = new FlightStatusUpdateDTO();
         dto.setFlightId(flight.getId());

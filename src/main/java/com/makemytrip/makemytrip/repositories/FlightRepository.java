@@ -18,6 +18,12 @@ public interface FlightRepository extends JpaRepository<Flight, Long> {
 
     List<Flight> findByActiveTrue();
 
+    @Query("SELECT f FROM Flight f WHERE f.active = true AND f.departureTime < :now")
+    List<Flight> findActiveFlightsDepartedBefore(@Param("now") LocalDateTime now);
+
+    @Query("SELECT f FROM Flight f WHERE f.active = true AND f.departureTime >= :now")
+    List<Flight> findActiveFlightsDepartingAfter(@Param("now") LocalDateTime now);
+
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT f FROM Flight f WHERE f.id = :id")
     java.util.Optional<Flight> findByIdWithLock(@Param("id") Long id);

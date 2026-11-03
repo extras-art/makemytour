@@ -487,11 +487,10 @@ export default function Home() {
                             <div className="flex items-center gap-2">
                               <TrackFlightButton flightId={result.id} />
                               <Button
-                                className={`px-5 font-semibold ${
-                                  isSoldOut
+                                className={`px-5 font-semibold ${isSoldOut
                                     ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
                                     : "bg-red-600 hover:bg-red-700 text-white"
-                                }`}
+                                  }`}
                                 disabled={isSoldOut}
                                 onClick={() => handlebooknow(result.id)}
                               >

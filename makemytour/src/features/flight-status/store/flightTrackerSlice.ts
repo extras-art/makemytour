@@ -122,6 +122,20 @@ export const flightTrackerSlice = createSlice({
     setFlightHomeActive: (state, action: PayloadAction<boolean>) => {
       state.isFlightHomeActive = action.payload;
     },
+    pruneInactiveFlights: (state, action: PayloadAction<number[]>) => {
+      const validActiveIds = new Set(action.payload);
+      const initialCount = state.trackedFlightIds.length;
+      state.trackedFlightIds = state.trackedFlightIds.filter((id) => validActiveIds.has(id));
+      Object.keys(state.statuses).forEach((idStr) => {
+        const flightId = Number(idStr);
+        if (!validActiveIds.has(flightId)) {
+          delete state.statuses[flightId];
+        }
+      });
+      if (state.trackedFlightIds.length !== initialCount) {
+        saveTrackedIdsToStorage(state.trackedFlightIds);
+      }
+    },
     syncTrackedIdsFromStorage: (state) => {
       state.trackedFlightIds = getInitialTrackedIds();
     },
@@ -140,6 +154,7 @@ export const {
   setNotificationsEnabled,
   setLoading,
   setFlightHomeActive,
+  pruneInactiveFlights,
   syncTrackedIdsFromStorage,
 } = flightTrackerSlice.actions;
 
