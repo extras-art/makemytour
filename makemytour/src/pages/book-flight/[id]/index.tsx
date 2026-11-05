@@ -43,6 +43,10 @@ import { Users, Ticket } from "lucide-react";
 import SignupDialog from "@/components/SignupDialog";
 import Loader from "@/components/Loader";
 import { setUser } from "@/store";
+import PriceTransparencyBadge from "@/features/dynamic-pricing/components/PriceTransparencyBadge";
+import PriceFreezeWidget from "@/features/dynamic-pricing/components/PriceFreezeWidget";
+import InteractivePriceHistoryChart from "@/features/dynamic-pricing/components/InteractivePriceHistoryChart";
+import { PriceLockResponse } from "@/features/dynamic-pricing/types/pricing.types";
 const BookFlightPage = () => {
   const router = useRouter();
   const { id } = router.query;
@@ -52,6 +56,7 @@ const BookFlightPage = () => {
   const [open, setopem] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [activePriceLock, setActivePriceLock] = useState<PriceLockResponse | null>(null);
   const user = useSelector((state: any) => state.user.user);
   const dispatch = useDispatch();
   useEffect(() => {
@@ -181,8 +186,9 @@ const BookFlightPage = () => {
     );
   };
 
-  const totalPrice = flight?.price * quantity;
-  const totalTaxes = fareSummary?.taxes * quantity;
+  const effectiveUnitPrice = activePriceLock ? activePriceLock.lockedPrice : Number(flight?.price || 0);
+  const totalPrice = effectiveUnitPrice * quantity;
+  const totalTaxes = Math.round(totalPrice * 0.12);
   const totalOtherServices = fareSummary?.otherServices * quantity;
   const totalDiscounts = fareSummary?.discounts * quantity;
   const grandTotal =
@@ -504,6 +510,12 @@ const BookFlightPage = () => {
               </div>
             </div>
 
+            {/* Dynamic Pricing Interactive Price History Chart */}
+            <InteractivePriceHistoryChart
+              entityType="FLIGHT"
+              entityId={Number(flight.id)}
+            />
+
             {/* Hotel Offers */}
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
@@ -564,10 +576,22 @@ const BookFlightPage = () => {
           {/* Fare Summary */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
-              <h2 className="text-lg font-bold mb-6 flex items-center">
-                <CreditCard className="w-5 h-5 mr-2 text-gray-600" />
-                Fare Summary
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2 text-gray-600" />
+                  Fare Summary
+                </h2>
+                <PriceTransparencyBadge entityType="FLIGHT" entityId={Number(flight.id)} />
+              </div>
+
+              {activePriceLock && (
+                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-lg text-xs flex items-center justify-between">
+                  <span className="font-bold flex items-center gap-1">
+                    🔒 Locked Price Applied
+                  </span>
+                  <span>₹{activePriceLock.lockedPrice.toLocaleString("en-IN")}/seat</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Base Fare</span>
@@ -602,6 +626,16 @@ const BookFlightPage = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="mt-4 mb-4">
+                <PriceFreezeWidget
+                  entityType="FLIGHT"
+                  entityId={Number(flight.id)}
+                  currentPrice={flight.price}
+                  onPriceLocked={(lock) => setActivePriceLock(lock)}
+                />
+              </div>
+
               <Dialog
                 open={open}
                 onOpenChange={(val) => {

@@ -11,6 +11,9 @@ import { useEffect, useState } from "react";
 import { getallflightsadmin, deactivateflight } from "@/api";
 import Loader from "../Loader";
 import TrackFlightButton from "@/features/flight-status/components/TrackFlightButton";
+import PriceTransparencyBadge from "@/features/dynamic-pricing/components/PriceTransparencyBadge";
+import PriceTrendDrawer from "@/features/dynamic-pricing/components/PriceTrendDrawer";
+import { TrendingUp } from "lucide-react";
 
 interface FlightListProps {
   onSelect: (flight: any) => void;
@@ -23,6 +26,7 @@ const FlightList = ({ onSelect, refreshTrigger, onRefresh }: FlightListProps) =>
   const [loading, setLoading] = useState(true);
   const [deactivatingId, setDeactivatingId] = useState<number | string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [trendFlight, setTrendFlight] = useState<any | null>(null);
 
   const fetchFlights = async () => {
     try {
@@ -98,7 +102,21 @@ const FlightList = ({ onSelect, refreshTrigger, onRefresh }: FlightListProps) =>
                     {f.from || f.source} → {f.to || f.destination}
                   </TableCell>
                   <TableCell className="font-semibold text-gray-900">
-                    ₹ {Number(f.price || 0).toLocaleString("en-IN")}
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>₹ {Number(f.price || 0).toLocaleString("en-IN")}</span>
+                      <PriceTransparencyBadge entityType="FLIGHT" entityId={f.id} />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTrendFlight(f);
+                        }}
+                        className="text-[11px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+                      >
+                        <TrendingUp className="w-3 h-3" />
+                        View Trend
+                      </button>
+                    </div>
                   </TableCell>
                   <TableCell>{f.availableSeats ?? 0}</TableCell>
                   <TableCell>
@@ -146,6 +164,15 @@ const FlightList = ({ onSelect, refreshTrigger, onRefresh }: FlightListProps) =>
           </TableBody>
         </Table>
       </div>
+      {trendFlight && (
+        <PriceTrendDrawer
+          entityType="FLIGHT"
+          entityId={trendFlight.id}
+          entityName={trendFlight.flightName || trendFlight.airline || "Flight"}
+          isOpen={!!trendFlight}
+          onClose={() => setTrendFlight(null)}
+        />
+      )}
     </div>
   );
 };

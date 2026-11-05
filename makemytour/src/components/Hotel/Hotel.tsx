@@ -10,6 +10,9 @@ import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import { getallhotelsadmin, deactivatehotel } from "@/api";
 import Loader from "../Loader";
+import PriceTransparencyBadge from "@/features/dynamic-pricing/components/PriceTransparencyBadge";
+import PriceTrendDrawer from "@/features/dynamic-pricing/components/PriceTrendDrawer";
+import { TrendingUp } from "lucide-react";
 
 interface HotelListProps {
   onSelect: (hotel: any) => void;
@@ -22,6 +25,7 @@ const HotelList = ({ onSelect, refreshTrigger, onRefresh }: HotelListProps) => {
   const [loading, setLoading] = useState(true);
   const [deactivatingId, setDeactivatingId] = useState<number | string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [trendHotel, setTrendHotel] = useState<any | null>(null);
 
   const fetchHotels = async () => {
     try {
@@ -95,7 +99,21 @@ const HotelList = ({ onSelect, refreshTrigger, onRefresh }: HotelListProps) => {
                   <TableCell className="font-medium">{h.hotelName || h.name}</TableCell>
                   <TableCell className="text-sm text-gray-600">{h.location || h.city}</TableCell>
                   <TableCell className="font-semibold text-gray-900">
-                    ₹ {Number(h.pricePerNight || 0).toLocaleString("en-IN")}
+                    <div className="flex flex-col gap-1 items-start">
+                      <span>₹ {Number(h.pricePerNight || 0).toLocaleString("en-IN")}</span>
+                      <PriceTransparencyBadge entityType="HOTEL" entityId={h.id} />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTrendHotel(h);
+                        }}
+                        className="text-[11px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium"
+                      >
+                        <TrendingUp className="w-3 h-3" />
+                        View Trend
+                      </button>
+                    </div>
                   </TableCell>
                   <TableCell>{h.availableRooms ?? 0}</TableCell>
                   <TableCell>
@@ -142,6 +160,15 @@ const HotelList = ({ onSelect, refreshTrigger, onRefresh }: HotelListProps) => {
           </TableBody>
         </Table>
       </div>
+      {trendHotel && (
+        <PriceTrendDrawer
+          entityType="HOTEL"
+          entityId={trendHotel.id}
+          entityName={trendHotel.hotelName || trendHotel.name || "Hotel"}
+          isOpen={!!trendHotel}
+          onClose={() => setTrendHotel(null)}
+        />
+      )}
     </div>
   );
 };

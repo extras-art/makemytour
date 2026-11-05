@@ -35,6 +35,10 @@ import SignupDialog from "@/components/SignupDialog";
 import Loader from "@/components/Loader";
 import { setUser } from "@/store";
 import { getHotelImageData } from "@/lib/hotelImages";
+import PriceTransparencyBadge from "@/features/dynamic-pricing/components/PriceTransparencyBadge";
+import PriceFreezeWidget from "@/features/dynamic-pricing/components/PriceFreezeWidget";
+import InteractivePriceHistoryChart from "@/features/dynamic-pricing/components/InteractivePriceHistoryChart";
+import { PriceLockResponse } from "@/features/dynamic-pricing/types/pricing.types";
 
 interface Hotel {
   id: string | number;
@@ -59,6 +63,7 @@ const BookHotelPage = () => {
   const [open, setopem] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+  const [activePriceLock, setActivePriceLock] = useState<PriceLockResponse | null>(null);
 
   // Today and Tomorrow in YYYY-MM-DD
   const todayStr = new Date().toISOString().split("T")[0];
@@ -140,7 +145,7 @@ const BookHotelPage = () => {
   };
 
   // Pricing calculations
-  const pricePerNight = Number(hotel?.pricePerNight ?? 0);
+  const pricePerNight = activePriceLock ? activePriceLock.lockedPrice : Number(hotel?.pricePerNight ?? 0);
   const baseRoomPrice = pricePerNight * roomsCount * nights;
   const taxes = Math.round(baseRoomPrice * 0.12);
   const discount = Math.round(baseRoomPrice * 0.05); // 5% promotional discount
@@ -425,6 +430,14 @@ const BookHotelPage = () => {
               </p>
             </div>
 
+            {/* Dynamic Pricing Interactive Price History Chart */}
+            <div className="mb-8">
+              <InteractivePriceHistoryChart
+                entityType="HOTEL"
+                entityId={Number(hotel.id)}
+              />
+            </div>
+
             {/* Amenities Section */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Included Amenities</h2>
@@ -465,7 +478,19 @@ const BookHotelPage = () => {
           {/* Booking & Configuration Card */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-md border border-gray-100 p-6 sticky top-24">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Select Stay Details</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Select Stay Details</h3>
+                <PriceTransparencyBadge entityType="HOTEL" entityId={Number(hotel.id)} />
+              </div>
+
+              {activePriceLock && (
+                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 p-2.5 rounded-lg text-xs flex items-center justify-between">
+                  <span className="font-bold flex items-center gap-1">
+                    🔒 Locked Price Applied
+                  </span>
+                  <span>₹{activePriceLock.lockedPrice.toLocaleString("en-IN")}/night</span>
+                </div>
+              )}
 
               {dateError && (
                 <div className="mb-4 p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-1.5">
@@ -562,6 +587,15 @@ const BookHotelPage = () => {
                   <span className="font-bold text-gray-900">Total Price:</span>
                   <span className="text-2xl font-black text-red-600">₹ {grandTotal.toLocaleString()}</span>
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <PriceFreezeWidget
+                  entityType="HOTEL"
+                  entityId={Number(hotel.id)}
+                  currentPrice={hotel.pricePerNight}
+                  onPriceLocked={(lock) => setActivePriceLock(lock)}
+                />
               </div>
 
               <Dialog

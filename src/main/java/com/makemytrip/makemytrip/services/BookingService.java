@@ -3,6 +3,8 @@ package com.makemytrip.makemytrip.services;
 import com.makemytrip.makemytrip.dto.CreateBookingRequestDto;
 import com.makemytrip.makemytrip.exceptions.InsufficientInventoryException;
 import com.makemytrip.makemytrip.exceptions.ResourceNotFoundException;
+import com.makemytrip.makemytrip.dynamicpricing.model.EntityType;
+import com.makemytrip.makemytrip.dynamicpricing.service.PriceFreezeService;
 import com.makemytrip.makemytrip.models.Booking;
 import com.makemytrip.makemytrip.models.Flight;
 import com.makemytrip.makemytrip.models.Hotel;
@@ -29,17 +31,20 @@ public class BookingService {
     private final UserRepository userRepository;
     private final FlightRepository flightRepository;
     private final HotelRepository hotelRepository;
+    private final PriceFreezeService priceFreezeService;
 
     public BookingService(
         BookingRepository bookingRepository,
         UserRepository userRepository,
         FlightRepository flightRepository,
-        HotelRepository hotelRepository
+        HotelRepository hotelRepository,
+        PriceFreezeService priceFreezeService
     ) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.flightRepository = flightRepository;
         this.hotelRepository = hotelRepository;
+        this.priceFreezeService = priceFreezeService;
     }
 
     @Transactional
@@ -112,8 +117,10 @@ public class BookingService {
             flight.setAvailableSeats(availableSeats - quantity);
             flightRepository.save(flight);
 
-            // Backend Price Calculation (BUG-06)
-            BigDecimal unitPrice = flight.getPrice() != null ? flight.getPrice() : BigDecimal.ZERO;
+            // Backend Price Calculation (BUG-06) + Dynamic Pricing Frozen Price Check
+            BigDecimal rawUnitPrice = flight.getPrice() != null ? flight.getPrice() : BigDecimal.ZERO;
+            BigDecimal unitPrice = priceFreezeService.resolveEffectiveUnitPrice(
+                user.getId(), EntityType.FLIGHT, flight.getId(), rawUnitPrice);
             BigDecimal baseTotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
             BigDecimal taxes = baseTotal.multiply(BigDecimal.valueOf(0.12)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal grandTotal = baseTotal.add(taxes);
@@ -150,8 +157,10 @@ public class BookingService {
             long days = ChronoUnit.DAYS.between(checkIn, checkOut);
             int nights = (int) Math.max(1, days);
 
-            // Backend Price Calculation (BUG-06)
-            BigDecimal unitPrice = hotel.getPricePerNight() != null ? hotel.getPricePerNight() : BigDecimal.ZERO;
+            // Backend Price Calculation (BUG-06) + Dynamic Pricing Frozen Price Check
+            BigDecimal rawUnitPrice = hotel.getPricePerNight() != null ? hotel.getPricePerNight() : BigDecimal.ZERO;
+            BigDecimal unitPrice = priceFreezeService.resolveEffectiveUnitPrice(
+                user.getId(), EntityType.HOTEL, hotel.getId(), rawUnitPrice);
             BigDecimal baseTotal = unitPrice.multiply(BigDecimal.valueOf(quantity)).multiply(BigDecimal.valueOf(nights));
             BigDecimal taxes = baseTotal.multiply(BigDecimal.valueOf(0.12)).setScale(2, RoundingMode.HALF_UP);
             BigDecimal grandTotal = baseTotal.add(taxes);
