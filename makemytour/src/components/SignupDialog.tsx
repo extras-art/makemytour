@@ -13,6 +13,7 @@ import { Input } from "./ui/input";
 import { signup, login } from "../api";
 import { setUser } from "@/store";
 import { useDispatch } from "react-redux";
+import { useRouter } from "next/router";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 interface SignupDialogProps {
@@ -43,6 +44,7 @@ const SignupDialog = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const validatePassword = (pass: string): string | null => {
     if (pass.length < 8) return "Password must be at least 8 characters long.";
@@ -87,6 +89,9 @@ const SignupDialog = ({
         dispatch(setUser(data));
         setOpen(false);
         clearForm();
+        if (data?.role === "ROLE_ADMIN" || data?.role === "ADMIN") {
+          router.push("/admin");
+        }
       } catch (err: any) {
         setError(err.message || "Invalid email or password.");
       } finally {

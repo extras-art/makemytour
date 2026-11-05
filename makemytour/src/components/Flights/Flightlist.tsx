@@ -103,7 +103,7 @@ const FlightList = ({ onSelect, refreshTrigger, onRefresh }: FlightListProps) =>
                   </TableCell>
                   <TableCell className="font-semibold text-gray-900">
                     <div className="flex flex-col gap-1 items-start">
-                      <span>₹ {Number(f.price || 0).toLocaleString("en-IN")}</span>
+                      <span>₹ {Math.round(Number(f.price || 0)).toLocaleString("en-IN")}</span>
                       <PriceTransparencyBadge entityType="FLIGHT" entityId={f.id} />
                       <button
                         type="button"

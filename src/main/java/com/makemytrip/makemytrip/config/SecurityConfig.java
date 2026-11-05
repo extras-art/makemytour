@@ -61,6 +61,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/flights/**", "/api/hotels/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/users").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin-panel/**").hasRole("ADMIN")
+                .requestMatchers("/api/cancellations/analytics/**", "/api/cancellations/all").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PATCH, "/api/cancellations/**").hasRole("ADMIN")
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

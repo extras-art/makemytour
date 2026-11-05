@@ -23,6 +23,8 @@ import { useRouter } from "next/router";
 import { clearUser, setUser } from "@/store";
 import { editprofile, getuserbookings, cancelbooking } from "@/api";
 import Loader from "@/components/Loader";
+import CancelBookingModal from "@/features/cancellation-refund/components/CancelBookingModal";
+import RefundStatusTrackerCard from "@/features/cancellation-refund/components/RefundStatusTrackerCard";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +39,7 @@ interface NormalizedBooking {
   title: string;
   formattedDate: string;
   formattedPrice: string;
+  totalPrice?: number;
   location: string;
   status: string;
   paymentStatus: string;
@@ -133,7 +136,9 @@ const normalizeBooking = (booking: any): NormalizedBooking => {
   }
 
   const status = booking.status ? String(booking.status) : "CONFIRMED";
-  const canCancel = status.toUpperCase() === "CONFIRMED";
+  const canCancel =
+    status.toUpperCase() === "CONFIRMED" ||
+    status.toUpperCase() === "PARTIALLY_CANCELLED";
 
   let paymentStatus = "Payment status unavailable";
   if (booking.paymentStatus) {
@@ -148,6 +153,7 @@ const normalizeBooking = (booking: any): NormalizedBooking => {
     title,
     formattedDate,
     formattedPrice,
+    totalPrice: booking.totalPrice != null ? Number(booking.totalPrice) : undefined,
     location,
     status,
     paymentStatus,
@@ -220,8 +226,8 @@ const ProfilePage = () => {
     }
   }, [user]);
 
-  // Fetch real bookings from backend
-  const fetchBookings = async () => {
+  // Fetch real bookings from backend (supports silent background re-fetch)
+  const fetchBookings = async (isBackground = false) => {
     if (!user?.id) {
       setBookingsLoading(false);
       setBookings([]);
@@ -229,26 +235,36 @@ const ProfilePage = () => {
     }
 
     try {
-      setBookingsLoading(true);
+      if (!isBackground) {
+        setBookingsLoading(true);
+      }
       setBookingsError(null);
       const data = await getuserbookings(user.id);
       const list = Array.isArray(data) ? data : [];
       setBookings(list.map(normalizeBooking));
     } catch (err: any) {
       console.error("Failed to fetch bookings:", err);
-      setBookingsError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to load bookings. Please try again."
-      );
-      setBookings([]);
+      if (!isBackground) {
+        setBookingsError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load bookings. Please try again."
+        );
+        setBookings([]);
+      }
     } finally {
-      setBookingsLoading(false);
+      if (!isBackground) {
+        setBookingsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchBookings(false);
+    const interval = setInterval(() => {
+      fetchBookings(true);
+    }, 15000);
+    return () => clearInterval(interval);
   }, [user?.id]);
 
   const handleEditFormChange = (field: string, value: string) => {
@@ -586,7 +602,7 @@ const ProfilePage = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center space-y-3">
                   <p className="text-red-700 font-medium text-sm">{bookingsError}</p>
                   <button
-                    onClick={fetchBookings}
+                    onClick={() => fetchBookings(false)}
                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
                   >
                     Try Again
@@ -693,6 +709,16 @@ const ProfilePage = () => {
                         </div>
                       </div>
 
+                      {/* Live Refund Tracker for Cancelled / Partially Cancelled Bookings */}
+                      {["CANCELLED", "PARTIALLY_CANCELLED", "REFUND_PENDING", "REFUNDED"].includes(
+                        booking.status.toUpperCase()
+                      ) && (
+                        <RefundStatusTrackerCard
+                          bookingId={booking.id}
+                          onTrackerUpdated={() => fetchBookings(true)}
+                        />
+                      )}
+
                       {/* Footer Actions */}
                       <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                         <div className="text-xs text-gray-500">
@@ -720,54 +746,21 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Cancellation Confirmation Dialog */}
-      <Dialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
-        <DialogContent className="sm:max-w-[440px] bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center text-red-600">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Cancel Booking #{selectedBookingForCancel?.id}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600 text-sm mt-1">
-              Are you sure you want to cancel your reservation for{" "}
-              <strong className="text-gray-900">{selectedBookingForCancel?.title}</strong>?
-            </DialogDescription>
-          </DialogHeader>
-
-          {cancelError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{cancelError}</span>
-            </div>
-          )}
-
-          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-600 space-y-1">
-            <p>
-              • Cancelled bookings release reserved seats/rooms immediately back into inventory.
-            </p>
-            <p>
-              • This action cannot be reversed once confirmed.
-            </p>
-          </div>
-
-          <div className="flex space-x-3 mt-4">
-            <button
-              onClick={() => setCancelModalOpen(false)}
-              disabled={cancelLoading}
-              className="flex-1 py-2 px-4 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold transition-colors"
-            >
-              Keep Booking
-            </button>
-            <button
-              onClick={handleConfirmCancel}
-              disabled={cancelLoading}
-              className="flex-1 py-2 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:bg-gray-400"
-            >
-              {cancelLoading ? "Cancelling..." : "Yes, Cancel Booking"}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modern Cancellation & Policy-Based Refund Modal */}
+      <CancelBookingModal
+        isOpen={cancelModalOpen}
+        onClose={() => {
+          setCancelModalOpen(false);
+          setSelectedBookingForCancel(null);
+        }}
+        booking={selectedBookingForCancel}
+        onSuccess={(result) => {
+          setCancelSuccess(
+            `Cancellation confirmed: ${result.policyAppliedLabel} (${result.refundPercentage}% refund: ₹${result.refundAmount.toLocaleString()})`
+          );
+          fetchBookings();
+        }}
+      />
     </div>
   );
 };

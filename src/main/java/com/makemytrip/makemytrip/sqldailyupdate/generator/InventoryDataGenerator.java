@@ -11,16 +11,22 @@ import java.util.concurrent.ThreadLocalRandom;
 @Component
 public class InventoryDataGenerator {
 
-    private static final BigDecimal MIN_FLIGHT_PRICE = BigDecimal.valueOf(1500.00);
-    private static final BigDecimal MIN_HOTEL_PRICE = BigDecimal.valueOf(800.00);
+    private static final BigDecimal MIN_FLIGHT_PRICE = BigDecimal.valueOf(2500.00);
+    private static final BigDecimal MAX_FLIGHT_PRICE = BigDecimal.valueOf(45000.00);
+    private static final BigDecimal MIN_HOTEL_PRICE = BigDecimal.valueOf(1500.00);
+    private static final BigDecimal MAX_HOTEL_PRICE = BigDecimal.valueOf(35000.00);
 
     /**
      * Fluctuates flight price by ±5% to 15% anchored to baseline price.
-     * Guaranteed never to drop below MIN_FLIGHT_PRICE.
+     * Guaranteed strictly clamped between MIN_FLIGHT_PRICE and MAX_FLIGHT_PRICE.
      */
     public BigDecimal fluctuateFlightPrice(BigDecimal baselinePrice) {
         if (baselinePrice == null || baselinePrice.compareTo(BigDecimal.ZERO) <= 0) {
             baselinePrice = BigDecimal.valueOf(4500.00);
+        } else if (baselinePrice.compareTo(MIN_FLIGHT_PRICE) < 0) {
+            baselinePrice = MIN_FLIGHT_PRICE;
+        } else if (baselinePrice.compareTo(MAX_FLIGHT_PRICE) > 0) {
+            baselinePrice = MAX_FLIGHT_PRICE;
         }
 
         boolean increase = ThreadLocalRandom.current().nextBoolean();
@@ -30,16 +36,26 @@ public class InventoryDataGenerator {
         BigDecimal calculated = baselinePrice.multiply(BigDecimal.valueOf(multiplier))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return calculated.compareTo(MIN_FLIGHT_PRICE) < 0 ? MIN_FLIGHT_PRICE : calculated;
+        if (calculated.compareTo(MIN_FLIGHT_PRICE) < 0) {
+            return MIN_FLIGHT_PRICE;
+        }
+        if (calculated.compareTo(MAX_FLIGHT_PRICE) > 0) {
+            return MAX_FLIGHT_PRICE;
+        }
+        return calculated;
     }
 
     /**
      * Fluctuates hotel price by ±5% to 10% anchored to baseline price.
-     * Guaranteed never to drop below MIN_HOTEL_PRICE.
+     * Guaranteed strictly clamped between MIN_HOTEL_PRICE and MAX_HOTEL_PRICE.
      */
     public BigDecimal fluctuateHotelPrice(BigDecimal baselinePrice) {
         if (baselinePrice == null || baselinePrice.compareTo(BigDecimal.ZERO) <= 0) {
             baselinePrice = BigDecimal.valueOf(3000.00);
+        } else if (baselinePrice.compareTo(MIN_HOTEL_PRICE) < 0) {
+            baselinePrice = MIN_HOTEL_PRICE;
+        } else if (baselinePrice.compareTo(MAX_HOTEL_PRICE) > 0) {
+            baselinePrice = MAX_HOTEL_PRICE;
         }
 
         boolean increase = ThreadLocalRandom.current().nextBoolean();
@@ -49,7 +65,13 @@ public class InventoryDataGenerator {
         BigDecimal calculated = baselinePrice.multiply(BigDecimal.valueOf(multiplier))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return calculated.compareTo(MIN_HOTEL_PRICE) < 0 ? MIN_HOTEL_PRICE : calculated;
+        if (calculated.compareTo(MIN_HOTEL_PRICE) < 0) {
+            return MIN_HOTEL_PRICE;
+        }
+        if (calculated.compareTo(MAX_HOTEL_PRICE) > 0) {
+            return MAX_HOTEL_PRICE;
+        }
+        return calculated;
     }
 
     /**

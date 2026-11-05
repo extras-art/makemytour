@@ -100,7 +100,7 @@ const HotelList = ({ onSelect, refreshTrigger, onRefresh }: HotelListProps) => {
                   <TableCell className="text-sm text-gray-600">{h.location || h.city}</TableCell>
                   <TableCell className="font-semibold text-gray-900">
                     <div className="flex flex-col gap-1 items-start">
-                      <span>₹ {Number(h.pricePerNight || 0).toLocaleString("en-IN")}</span>
+                      <span>₹ {Math.round(Number(h.pricePerNight || 0)).toLocaleString("en-IN")}</span>
                       <PriceTransparencyBadge entityType="HOTEL" entityId={h.id} />
                       <button
                         type="button"

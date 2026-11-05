@@ -118,7 +118,8 @@ public class DynamicPricingEngineService {
         double rawMultiplier = 1.0 + (totalMultiplierPct / 100.0);
         double clampedMultiplier = Math.max(0.85, Math.min(1.65, rawMultiplier));
 
-        BigDecimal finalPrice = BigDecimal.valueOf(basePriceVal * clampedMultiplier).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal finalPrice = BaselinePriceCache.clampFlightPrice(
+                BigDecimal.valueOf(basePriceVal * clampedMultiplier).setScale(2, RoundingMode.HALF_UP));
 
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         BigDecimal minPrice = priceHistoryRepository.findLowestPriceSince(EntityType.FLIGHT, flight.getId(), thirtyDaysAgo);
@@ -176,7 +177,8 @@ public class DynamicPricingEngineService {
         double rawMultiplier = 1.0 + (totalMultiplierPct / 100.0);
         double clampedMultiplier = Math.max(0.85, Math.min(1.65, rawMultiplier));
 
-        BigDecimal finalPrice = BigDecimal.valueOf(basePriceVal * clampedMultiplier).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal finalPrice = BaselinePriceCache.clampHotelPrice(
+                BigDecimal.valueOf(basePriceVal * clampedMultiplier).setScale(2, RoundingMode.HALF_UP));
 
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         BigDecimal minPrice = priceHistoryRepository.findLowestPriceSince(EntityType.HOTEL, hotel.getId(), thirtyDaysAgo);

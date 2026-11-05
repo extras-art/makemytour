@@ -6,9 +6,13 @@ import { Provider } from "react-redux";
 import Navbar from "@/components/Navbar";
 
 import { useEffect } from "react";
+import { useRouter } from "next/router";
 import Footer from "@/components/Fotter";
 
 const Myapp = ({ Component, pageProps }: AppProps) => {
+  const router = useRouter();
+  const isAdmin = router.pathname.startsWith("/admin");
+
   useEffect(() => {
     try {
       const storeduser = localStorage.getItem("user");
@@ -32,10 +36,10 @@ const Myapp = ({ Component, pageProps }: AppProps) => {
     }
   }, []);
   return (
-    <div className="min-h-screen ">
-      <Navbar />
+    <div className="min-h-screen">
+      {!isAdmin && <Navbar />}
       <Component {...pageProps} />
-      <Footer/>
+      {!isAdmin && <Footer />}
     </div>
   );
 };

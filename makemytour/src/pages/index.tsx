@@ -436,25 +436,25 @@ export default function Home() {
                   return (
                     <div
                       key={result.id}
-                      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-5 border border-gray-100 flex flex-col justify-between"
+                      className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100 flex flex-col justify-between h-full overflow-hidden p-5"
                     >
                       {bookingtype === "flights" ? (
                         <>
                           <div>
-                            <div className="flex items-center justify-between mb-3">
-                              <span className="font-semibold text-gray-900 text-base">
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                              <span className="font-semibold text-gray-900 text-base min-w-0 break-words leading-tight">
                                 {result.flightName}
                               </span>
                               {isSoldOut ? (
-                                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">
+                                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-red-100 text-red-700 shrink-0 whitespace-nowrap">
                                   Sold Out
                                 </span>
                               ) : seats <= 5 ? (
-                                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-700">
+                                <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-700 shrink-0 whitespace-nowrap">
                                   Only {seats} seats left!
                                 </span>
                               ) : (
-                                <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700">
+                                <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700 shrink-0 whitespace-nowrap">
                                   {seats} seats available
                                 </span>
                               )}
@@ -479,18 +479,21 @@ export default function Home() {
                             </div>
                           </div>
 
-                          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                            <div>
+                          <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                            <div className="min-w-0">
                               <p className="text-xs text-gray-400">Per traveler</p>
-                              <p className="text-xl font-black text-gray-900">₹{result.price}</p>
+                              <p className="text-xl font-black text-gray-900 truncate">
+                                ₹{Math.round(Number(result.price || 0)).toLocaleString("en-IN")}
+                              </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
                               <TrackFlightButton flightId={result.id} />
                               <Button
-                                className={`px-5 font-semibold ${isSoldOut
+                                className={`px-4 font-semibold shrink-0 whitespace-nowrap ${
+                                  isSoldOut
                                     ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
                                     : "bg-red-600 hover:bg-red-700 text-white"
-                                  }`}
+                                }`}
                                 disabled={isSoldOut}
                                 onClick={() => handlebooknow(result.id)}
                               >
@@ -529,13 +532,15 @@ export default function Home() {
                               {result.availableRooms ?? 10} rooms available
                             </p>
                           </div>
-                          <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                            <div>
+                          <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                            <div className="min-w-0">
                               <p className="text-xs text-gray-400">Per night</p>
-                              <p className="text-xl font-black text-gray-900">₹{result.pricePerNight}</p>
+                              <p className="text-xl font-black text-gray-900 truncate">
+                                ₹{Math.round(Number(result.pricePerNight || 0)).toLocaleString("en-IN")}
+                              </p>
                             </div>
                             <Button
-                              className="bg-red-600 hover:bg-red-700 text-white px-5 font-semibold"
+                              className="bg-red-600 hover:bg-red-700 text-white px-5 font-semibold shrink-0 whitespace-nowrap"
                               onClick={() => handlebooknow(result.id)}
                             >
                               Book Now
